@@ -18,7 +18,7 @@ public:
 
 	}
 
-	template<typename U, enable_if_t<is_same<U, T>::value, int> = 0>
+	template<typename U, enable_if_t<is_base_of<T, U>::value, int> = 0>
 	unique(U* data) noexcept: data{data} {
 
 	}
