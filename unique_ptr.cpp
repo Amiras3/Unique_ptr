@@ -18,17 +18,17 @@ public:
 
 	}
 
-	template<typename U, enable_if_t<is_base_of<T, U>::value, int> = 0>
-	unique(U* data) noexcept: data{data} {
-
-	}
-
 	unique(const unique& u) = delete;
 		
 	unique(unique&& u) noexcept: data{u.data} {
 		u.data = nullptr;
 	}
-	
+
+	template<typename U, enable_if_t<is_base_of<T, U>::value, int> = 0>
+	unique(unique<U>&& u) noexcept {
+                data = u.release();
+        }
+
 	unique& operator=(const unique& u) = delete;
 	
 	unique& operator=(unique&& u) noexcept {
@@ -40,9 +40,25 @@ public:
 		return *this;
 	}
 
+	template<typename U, enable_if_t<is_base_of<T, U>::value, int> = 0>
+	unique& operator=(unique<U>&& u) noexcept {
+                if(this != &u) {
+                        delete data;
+                        data = u.release();
+                }
+                return *this;
+        }
+
 	T* get() noexcept {
 		return data;
 	}
+
+	T* release() {
+                T* old_data = data;
+                data = nullptr;
+                return old_data;
+        }
+
 
 	T* operator->() noexcept {
 		return data;
@@ -69,15 +85,27 @@ class A
 public:
 	A() noexcept { cout << "A()" << endl; }
 	A(int x) noexcept: x{x} { cout << "A(int)" << endl; }  
-	~A() noexcept { cout << "~A()" << endl; }
+	virtual ~A() noexcept { cout << "~A()" << endl; }
+	virtual int f() {
+		return 1;
+	}
 	int x;
 	
 };
 
+class B: public A
+{
+public:
+	B() { cout << "B()" << endl; }
+	B(int x): A(x) { cout << "B(int)" << endl; }
+	~B() { cout << "~B()" << endl; }
+	int f() override {
+		return 2;
+	}
+};
+
 int main() {
-	auto u = make_unique_ptr<A>(1);
-	auto t = make_unique_ptr<A>(2);
-	u = move(t);
-	cout << u->x << endl;
+	unique<A> u = make_unique_ptr<B>(0);
+	cout << u-> x << endl << u->f() << endl;
 	return 0;
 }
